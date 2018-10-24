@@ -46,6 +46,10 @@ public class MorseDecoder {
     private static double[] binWavFilePower(final WavFile inputFile)
             throws IOException, WavFileException {
 
+        //inputFile.getNumFrames();
+
+        //inputFile.getNumFrames();
+
         /*
          * We should check the results of getNumFrames to ensure that they are safe to cast to int.
          */
@@ -54,7 +58,17 @@ public class MorseDecoder {
 
         double[] sampleBuffer = new double[BIN_SIZE * inputFile.getNumChannels()];
         for (int binIndex = 0; binIndex < totalBinCount; binIndex++) {
+            inputFile.readFrames(sampleBuffer, BIN_SIZE);
+            returnBuffer[binIndex] = 0;
+
             // Get the right number of samples from the inputFile
+
+            for (int sampleCount = 0; sampleCount < sampleBuffer.length; sampleCount++) {
+                returnBuffer[binIndex] += Math.abs(sampleBuffer[sampleCount]);
+                //if(framesToRead < BIN_SIZE && !(binIndex == totalBinCount - 1)) {
+                    //throw new RuntimeException("Short Read from WAV File");
+                //}
+            }
             // Sum all the samples together and store them in the returnBuffer
         }
         return returnBuffer;
@@ -65,6 +79,29 @@ public class MorseDecoder {
 
     /** Bin threshold for dots or dashes. Related to BIN_SIZE. You may need to modify this value. */
     private static final int DASH_BIN_COUNT = 8;
+
+    /**
+     *
+     * @param powerCount kk.
+     * @return kk.
+     */
+    private static String powerCountToDash(final int powerCount) {
+
+        if (powerCount > 0) {
+            if (powerCount > DASH_BIN_COUNT) {
+                return "-";
+            } else {
+                return ".";
+            }
+        } else if (powerCount < 0) {
+            if (Math.abs(powerCount) > DASH_BIN_COUNT) {
+                return " ";
+            }
+        }
+        return "";
+    }
+
+
 
     /**
      * Convert power measurements to dots, dashes, and spaces.
@@ -88,7 +125,29 @@ public class MorseDecoder {
         // else if issilence and wassilence
         // else if issilence and not wassilence
 
-        return "";
+
+        int setPowerCount = 0;
+        String returnString = "";
+
+        for (int binIndex = 0; binIndex < powerMeasurements.length; binIndex++) {
+            double powerMeasurement = powerMeasurements[binIndex];
+            if (powerMeasurement > POWER_THRESHOLD) {
+                if (setPowerCount < 0) {
+                    returnString += powerCountToDash(setPowerCount);
+                    setPowerCount = 0;
+                }
+                setPowerCount++;
+            } else {
+                if (setPowerCount > 0) {
+                    returnString += powerCountToDash(setPowerCount);
+                    setPowerCount = 0;
+                }
+                setPowerCount--;
+            }
+        }
+
+        returnString += powerCountToDash(setPowerCount);
+        return returnString;
     }
 
     /**
